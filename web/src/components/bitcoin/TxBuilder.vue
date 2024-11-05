@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Frame from "./Frame.vue";
 import TxInCard from "./TxInCard.vue";
-import {computed, Ref, ref, watch} from "vue";
+import {computed, ComputedRef, Ref, ref, watch} from "vue";
 import {
   CHECK_DIGITS, defaultTx,
   defaultTxIn,
@@ -54,6 +54,14 @@ let transactionHex = computed(() => {
     return e.toString();
   }
 });
+
+let transactionSize: ComputedRef<number | string> = computed(() => {
+  try {
+    return wasm.TxBuilder.json_to_tx_hex(JSON.stringify(transaction.value)).length / 2;
+  } catch (e: any) {
+    return '??';
+  }
+})
 
 watch([transaction], () => {
   console.log(transaction.value);
@@ -162,9 +170,16 @@ function optionsButtonOnSelect(key: OptionsButtonKey) {
         </div>
       </div>
     </Frame>
-    <div style="margin-top: 1em">Transaction:</div>
+    <div style="margin-top: 1em" class="bold-text">Transaction Info:</div>
+    Input number: {{ txIns.length }}<br>
+    Output number: {{ txOuts.length }}<br>
+    Output total value: {{ txOuts.map(x => x.amount).reduce((partialSum, a) => partialSum + a, 0) }} sats<br>
+    Transaction size: {{ transactionSize }} bytes<br>
+    <n-divider/>
+    <div class="bold-text">JSON:</div>
     <pre id="tx-output">{{ JSON.stringify(transaction, null, 2) }}</pre>
-    <span>Consensus Encoded</span>
+    <n-divider/>
+    <span class="bold-text">Consensus Encoded</span>
     <n-input type="textarea" rows="10" :value="transactionHex"/>
   </div>
 </template>
@@ -208,5 +223,9 @@ function optionsButtonOnSelect(key: OptionsButtonKey) {
   transform: translateX(-100%);
   margin: 0;
   padding: 0;
+}
+
+.bold-text {
+  font-weight: bold;
 }
 </style>
