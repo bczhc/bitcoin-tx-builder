@@ -38,6 +38,7 @@ sha2 = "0.10.8"
 strum = { version = "0.26.3", features = ["derive"] }
 serde = { version = "1.0.214", features = ["derive"] }
 serde_json = "1.0.132"
+yeet-ops = "1.0.0"
 
 # TODO: fetch packages from the web
 # this is my local workaround, since the latest version with break-api changes hasn't been released.

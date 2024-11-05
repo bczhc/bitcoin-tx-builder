@@ -78,7 +78,7 @@ function enterSequence(value: number) {
         </SelectableIcon>
       </div>
       <n-input size="small"
-               placeholder=""
+               placeholder="Sequence value"
                :value="`${valueModel.sequence}`"
                @update:value="x => valueModel.sequence = safeParseInt(x)"
       />
@@ -94,8 +94,14 @@ function enterSequence(value: number) {
           <InfoIcon/>
         </SelectableIcon>
       </div>
-      <n-input size="small" type="textarea" placeholder=""
+      <n-input size="small" type="textarea" placeholder="Script hex"
                v-model:value="valueModel.scriptSig"/>
+    </div>
+    <div class="cell">
+      <span class="label">Witness</span>
+      <n-input size="small" type="textarea"
+               placeholder="Witness hex arrays separated by commas"
+               v-model:value="valueModel.witness"/>
     </div>
   </Frame>
 </template>

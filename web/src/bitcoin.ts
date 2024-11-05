@@ -10,6 +10,12 @@ export interface TxIn {
     outpointIndex: number,
     sequence: number,
     scriptSig: string,
+    /**
+     * Witness arrays separated by commas
+     *
+     * <data1>, <data2>, ...
+     */
+    witness: string,
 }
 
 export interface TxOut {
@@ -25,6 +31,7 @@ export function defaultTxIn(): TxIn {
         outpointIndex: 0,
         scriptSig: '',
         sequence: 0xffffffff,
+        witness: '',
     };
 }
 

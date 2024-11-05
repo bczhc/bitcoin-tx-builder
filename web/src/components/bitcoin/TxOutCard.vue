@@ -31,7 +31,7 @@ let props = defineProps<{
     <div>
       <span class="label">Amount:</span>
       <n-input size="small" style="min-width: 50%; margin: 0 .25em"
-               autosize placeholder=""
+               autosize placeholder="In sats"
                :value="`${valueModel.amount}`"
                @update:value="x => valueModel.amount = safeParseInt(x)"
       />
@@ -48,7 +48,7 @@ let props = defineProps<{
           </SelectableIcon>
         </div>
       </div>
-      <n-input type="textarea" size="small" placeholder=""
+      <n-input type="textarea" size="small" placeholder="Script hex"
                v-model:value="valueModel.scriptPubKey"
       />
     </div>

@@ -15,11 +15,10 @@ use bitcoin::{
 };
 use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
+use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use anyhow::anyhow;
 use wasm_bindgen::prelude::wasm_bindgen;
-use yeet_ops::yeet;
 
 #[wasm_bindgen]
 pub struct Bitcoin;
@@ -76,6 +75,7 @@ struct JsTxIn {
     outpoint_index: u32,
     sequence: u32,
     script_sig: String,
+    witness: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -106,7 +106,7 @@ impl TryFrom<JsTx> for Transaction {
                         },
                         script_sig: ScriptBuf::from_hex(&x.script_sig)?,
                         sequence: Sequence(x.sequence),
-                        witness: Witness::default(), /* TODO: witness is not implemented yet */
+                        witness: JsWitness(&x.witness).try_into()?,
                     })
                 })
                 .collect::<Result<_, _>>()?,
@@ -134,6 +134,7 @@ impl TryFrom<TxIn> for JsTxIn {
             outpoint_index: tx.previous_output.vout,
             sequence: tx.sequence.0,
             script_sig: tx.script_sig.hex(),
+            witness: format!("{}", JsWitnessDisplay(tx.witness)),
         })
     }
 }
@@ -168,6 +169,37 @@ impl TryFrom<Transaction> for JsTx {
                 .collect::<Result<_, _>>()?,
         };
         Ok(tx)
+    }
+}
+
+struct JsWitness<'a>(&'a str);
+
+impl<'a> TryFrom<JsWitness<'a>> for Witness {
+    type Error = anyhow::Error;
+
+    fn try_from(value: JsWitness<'a>) -> Result<Self, Self::Error> {
+        let mut witness = Witness::new();
+        let split = value.0.split(',');
+        for x in split {
+            let x = x.trim();
+            if x.is_empty() {
+                continue;
+            }
+            witness.push(hex::decode(x)?);
+        }
+        Ok(witness)
+    }
+}
+
+struct JsWitnessDisplay(Witness);
+
+impl Display for JsWitnessDisplay {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        use fmt::Write;
+        for x in self.0.iter() {
+            writeln!(f, "{},", x.hex())?;
+        }
+        Ok(())
     }
 }
 
