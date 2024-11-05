@@ -3,7 +3,7 @@ import Frame from "./Frame.vue";
 import TxInCard from "./TxInCard.vue";
 import {computed, Ref, ref, watch} from "vue";
 import {
-  CHECK_DIGITS,
+  CHECK_DIGITS, defaultTx,
   defaultTxIn,
   defaultTxOut,
   GLOBAL_NETWORK,
@@ -32,8 +32,8 @@ let networkOptions: { label: string, value: NetworkType }[] = [
 ];
 let selectedNetwork = ref<NetworkType>('bitcoin');
 
-let version = ref(1);
-let lockTime = ref(0);
+let version = ref(defaultTx().version);
+let lockTime = ref(defaultTx().lockTime);
 
 let txIns: Ref<TxIn[]> = ref([]);
 let txOuts: Ref<TxOut[]> = ref([]);
@@ -87,10 +87,11 @@ let showModal = ref({
   importTx: false,
 });
 
-type OptionsButtonKey = 'import' | 'miscellaneous';
+type OptionsButtonKey = 'import' | 'miscellaneous' | 'reset';
 let optionsButtonDropdown: { key: OptionsButtonKey, label: string }[] = [
   {key: 'import', label: 'Import'},
   {key: 'miscellaneous', label: 'Miscellaneous'},
+  {key: 'reset', label: 'Reset'},
 ]
 
 function optionsButtonOnSelect(key: OptionsButtonKey) {
@@ -100,6 +101,12 @@ function optionsButtonOnSelect(key: OptionsButtonKey) {
       break;
     case "miscellaneous":
       router.push('/misc');
+      break;
+    case "reset":
+      version.value = defaultTx().version;
+      lockTime.value = defaultTx().lockTime;
+      txIns.value = [];
+      txOuts.value = [];
       break;
   }
 }

@@ -35,6 +35,15 @@ export function defaultTxIn(): TxIn {
     };
 }
 
+export function defaultTx(): Transaction {
+    return {
+        version: 1,
+        lockTime: 0,
+        in: [],
+        out: [],
+    }
+}
+
 export function defaultTxOut(): TxOut {
     return {
         amount: 0,
