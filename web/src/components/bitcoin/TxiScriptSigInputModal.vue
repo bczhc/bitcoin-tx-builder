@@ -6,7 +6,7 @@ import P2shRedeemView from "./P2shRedeemView.vue";
 
 let model = defineModel('show');
 type TabValue = 'P2SH' | 'Legacy Signing';
-let tabValue: Ref<TabValue> = ref('P2SH')
+let tabValue: Ref<TabValue> = ref('Legacy Signing')
 
 let props = defineProps<{
   tx: Transaction,

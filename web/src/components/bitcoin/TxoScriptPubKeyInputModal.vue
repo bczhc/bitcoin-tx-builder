@@ -19,18 +19,18 @@ let showModal = ref({
   scriptInfo: false,
 });
 
-type TabValue = 'P2PKH' | 'P2SH';
-let tabValue: Ref<TabValue> = ref('P2PKH');
+type TabValue = 'Address' | 'Create P2SH';
+let tabValue: Ref<TabValue> = ref('Address');
 
 function doneClick() {
   try {
     let r: string;
     switch (tabValue.value) {
-      case "P2PKH":
+      case "Address":
         r = wasm.TxBuilder.address_to_script_pub_key(address.value, GLOBAL_NETWORK);
         emit('result', r);
         break;
-      case "P2SH":
+      case "Create P2SH":
         r = wasm.TxBuilder.generate_p2sh_pub_key(redeem.value);
         emit('result', r);
         break;
@@ -56,11 +56,11 @@ function doneClick() {
         aria-modal="true"
     >
       <n-tabs type="line" animated v-model:value="tabValue">
-        <n-tab-pane name="P2PKH">
+        <n-tab-pane name="Address">
           <n-input v-model:value="address" placeholder="Address"/>
         </n-tab-pane>
         <n-tab-pane
-            name="P2SH"
+            name="Create P2SH"
             style="display: flex; align-items: center"
         >
           <n-input v-model:value="redeem" placeholder="Redeem Script Hex" type="textarea"/>

@@ -1,3 +1,5 @@
+#![feature(yeet_expr)]
+
 use crate::errors::{AnyhowExt, ResultExt};
 use crate::hashes::{hash160, ripemd160, sha1, sha256, sha256d, DigestType};
 use bitcoin::address::script_pubkey::{BuilderExt, ScriptExt as ScriptExt2};
@@ -15,7 +17,9 @@ use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+use anyhow::anyhow;
 use wasm_bindgen::prelude::wasm_bindgen;
+use yeet_ops::yeet;
 
 #[wasm_bindgen]
 pub struct Bitcoin;
