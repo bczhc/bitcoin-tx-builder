@@ -13,6 +13,7 @@ use bitcoin::{
 };
 use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
+use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -293,6 +294,16 @@ impl TxBuilder {
         };
         r.map_err_string()
     }
+
+    pub fn tx_hex_to_json(hex: &str) -> crate::Result<String> {
+        let r: anyhow::Result<_> = try {
+            let result: Result<Transaction, ConsensusErrorDesc> = consensus::deserialize(&hex::decode(hex)?).map_err(Into::into);
+            let tx = result?;
+            let tx = JsTx::try_from(tx)?;
+            serde_json::to_string(&tx)?
+        };
+        r.map_err_string()
+    }
 }
 
 pub trait ScriptsBuilderExt
@@ -318,5 +329,22 @@ where
 {
     fn consensus_encode_hex(&self) -> String {
         consensus::encode::serialize(self).hex()
+    }
+}
+
+#[derive(Debug)]
+struct ConsensusErrorDesc(String);
+
+impl Display for ConsensusErrorDesc {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0)
+    }
+}
+
+impl std::error::Error for ConsensusErrorDesc {}
+
+impl From<consensus::encode::Error> for ConsensusErrorDesc {
+    fn from(value: consensus::encode::Error) -> Self {
+        Self(format!("{value}"))
     }
 }

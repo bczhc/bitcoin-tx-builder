@@ -1,10 +1,10 @@
 import {createRouter, createWebHashHistory} from "vue-router";
-import Bitcoin from "./components/Bitcoin.vue";
 import TxBuilder from "./components/bitcoin/TxBuilder.vue";
+import Misc from "./components/Misc.vue";
 
 export const routes = [
     {path: '/', component: TxBuilder},
-    {path: '/tools', component: Bitcoin},
+    {path: '/misc', component: Misc},
 ]
 
 export const router = createRouter({

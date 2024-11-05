@@ -17,6 +17,7 @@ import {ArrowForward as Arrow} from '@vicons/ionicons5';
 import TxOutCard from "./TxOutCard.vue";
 import {safeParseInt, useWasm} from "../../lib.ts";
 import {useRoute, useRouter} from "vue-router";
+import ImportTxModal from "./ImportTxModal.vue";
 
 let wasm = useWasm();
 let router = useRouter();
@@ -66,7 +67,9 @@ watch([transaction], () => {
 }, {deep: true});
 
 function updateTransaction(json: string) {
+  console.log(json);
   let tx = JSON.parse(json) as Transaction;
+  console.log(tx);
   version.value = tx.version;
   lockTime.value = tx.lockTime;
   txIns.value = tx.in;
@@ -79,9 +82,37 @@ if (txQuery) {
   updateTransaction(txQuery);
   updateNetwork(networkQuery as NetworkType);
 }
+
+let showModal = ref({
+  importTx: false,
+});
+
+type OptionsButtonKey = 'import' | 'miscellaneous';
+let optionsButtonDropdown: { key: OptionsButtonKey, label: string }[] = [
+  {key: 'import', label: 'Import'},
+  {key: 'miscellaneous', label: 'Miscellaneous'},
+]
+
+function optionsButtonOnSelect(key: OptionsButtonKey) {
+  switch (key) {
+    case "import":
+      showModal.value.importTx = true;
+      break;
+    case "miscellaneous":
+      router.push('/misc');
+      break;
+  }
+}
 </script>
 
 <template>
+  <div id="page-options">
+    <n-dropdown trigger="click" @select="optionsButtonOnSelect" :options="optionsButtonDropdown">
+      <n-button style="margin: 10px;" tag="a" text>Options</n-button>
+    </n-dropdown>
+  </div>
+
+  <ImportTxModal v-model:show="showModal.importTx" @result="x => updateTransaction(x)"/>
   <div id="root-TxBuilder">
     <Frame title="Transaction" title-adjust="center" title-size="large">
       <n-form label-placement="top" inline>
@@ -162,5 +193,13 @@ if (txQuery) {
 .center {
   display: flex;
   justify-content: center;
+}
+
+#page-options {
+  position: fixed;
+  left: 100%;
+  transform: translateX(-100%);
+  margin: 0;
+  padding: 0;
 }
 </style>
