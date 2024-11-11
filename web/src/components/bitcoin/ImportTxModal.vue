@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import {ref} from "vue";
-import {Transaction} from "../../bitcoin.ts";
 import {useWasm} from "../../lib.ts";
 import {useMessage} from 'naive-ui';
 

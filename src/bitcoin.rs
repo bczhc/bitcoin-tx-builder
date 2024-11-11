@@ -181,11 +181,11 @@ impl<'a> TryFrom<JsWitness<'a>> for Witness {
         let mut witness = Witness::new();
         let split = value.0.split(',');
         for x in split {
-            let x = x.trim();
-            if x.is_empty() {
+            let squashed = x.chars().filter(|c| !c.is_whitespace()).collect::<String>();
+            if squashed.is_empty() {
                 continue;
             }
-            witness.push(hex::decode(x)?);
+            witness.push(hex::decode(squashed)?);
         }
         Ok(witness)
     }
@@ -196,8 +196,14 @@ struct JsWitnessDisplay(Witness);
 impl Display for JsWitnessDisplay {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         use fmt::Write;
-        for x in self.0.iter() {
-            writeln!(f, "{},", x.hex())?;
+
+        for (i, item) in self.0.iter().enumerate() {
+            if i == self.0.len() - 1 {
+                // the last item. do not append extra newline
+                write!(f, "{}", item.hex())?;
+            } else {
+                writeln!(f, "{},\n", item.hex())?;
+            }
         }
         Ok(())
     }
@@ -372,7 +378,7 @@ where
 struct ConsensusErrorDesc(String);
 
 impl Display for ConsensusErrorDesc {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.write_str(&self.0)
     }
 }
@@ -382,5 +388,32 @@ impl std::error::Error for ConsensusErrorDesc {}
 impl From<consensus::encode::Error> for ConsensusErrorDesc {
     fn from(value: consensus::encode::Error) -> Self {
         Self(format!("{value}"))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::bitcoin::{JsWitness, JsWitnessDisplay};
+    use bitcoin::witness::WitnessExt;
+    use bitcoin::Witness;
+    use hex_literal::hex;
+    use std::convert::TryFrom;
+
+    #[test]
+    fn js_witness_display() {
+        let mut witness = Witness::new();
+        assert_eq!(JsWitnessDisplay(witness.clone()).to_string(), "");
+        witness.push([0xfe]);
+        assert_eq!(JsWitnessDisplay(witness.clone()).to_string(), "fe");
+        witness.push([0xfe]);
+        assert_eq!(JsWitnessDisplay(witness.clone()).to_string(), "fe,\n\nfe");
+    }
+
+    #[test]
+    fn js_witness_try_from() {
+        assert_eq!(Witness::try_from(JsWitness("")).unwrap().to_vec(), Vec::<Vec<u8>>::default());
+        assert_eq!(Witness::try_from(JsWitness("fe")).unwrap().to_vec(), [hex!("fe")]);
+        assert_eq!(Witness::try_from(JsWitness("fe\nfb\n\nbe")).unwrap().to_vec(), [hex!("fefbbe")]);
+        assert_eq!(Witness::try_from(JsWitness("fe\nfb\n\nbe,  \n\n  \n ff")).unwrap().to_vec(), [&hex!("fefbbe")[..], &hex!("ff")[..]]);
     }
 }
