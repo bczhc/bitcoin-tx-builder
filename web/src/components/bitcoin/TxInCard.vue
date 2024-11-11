@@ -3,10 +3,11 @@ import Frame from "./Frame.vue";
 import {Transaction, TxIn} from "../../bitcoin.ts";
 import {safeParseInt} from "../../lib.ts";
 import SelectableIcon from "./SelectableIcon.vue";
-import {CreateOutline as CreateIcon, InformationOutline as InfoIcon} from '@vicons/ionicons5';
+import {Add as AddIcon, CreateOutline as CreateIcon, InformationOutline as InfoIcon} from '@vicons/ionicons5';
 import {ref} from "vue";
 import ScriptAsmModal from "./ScriptAsmModal.vue";
 import TxiScriptSigInputModal from "./TxiScriptSigInputModal.vue";
+import WitnessItem from "./WitnessItem.vue";
 
 let valueModel = defineModel<TxIn>('value');
 let emit = defineEmits(['close']);
@@ -98,10 +99,17 @@ function enterSequence(value: number) {
                v-model:value="valueModel.scriptSig"/>
     </div>
     <div class="cell">
-      <span class="label">Witness</span>
-      <n-input size="small" type="textarea"
-               placeholder="Witness hex arrays separated by commas"
-               v-model:value="valueModel.witness"/>
+      <span class="label">
+        Witness
+        <SelectableIcon @click="valueModel.witness.push('')"><AddIcon/></SelectableIcon>
+      </span>
+      <div id="witness-flex">
+        <WitnessItem v-for="(_, index) in valueModel.witness"
+                     :index="index"
+                     @remove="valueModel.witness.splice(index, 1)"
+                     v-model:value="valueModel.witness[index]"
+        />
+      </div>
     </div>
   </Frame>
 </template>
@@ -123,5 +131,10 @@ function enterSequence(value: number) {
   display: inline-flex;
   align-items: center;
   gap: .25em;
+}
+
+#witness-flex {
+  display: flex;
+  flex-direction: column;
 }
 </style>

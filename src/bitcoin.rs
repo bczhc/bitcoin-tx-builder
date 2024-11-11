@@ -75,7 +75,7 @@ struct JsTxIn {
     outpoint_index: u32,
     sequence: u32,
     script_sig: String,
-    witness: String,
+    witness: Vec<String>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -106,7 +106,13 @@ impl TryFrom<JsTx> for Transaction {
                         },
                         script_sig: ScriptBuf::from_hex(&x.script_sig)?,
                         sequence: Sequence(x.sequence),
-                        witness: JsWitness(&x.witness).try_into()?,
+                        witness: {
+                            let mut w = Witness::new();
+                            for x in x.witness {
+                                w.push(hex::decode(x));
+                            }
+                            w
+                        },
                     })
                 })
                 .collect::<Result<_, _>>()?,
@@ -134,7 +140,7 @@ impl TryFrom<TxIn> for JsTxIn {
             outpoint_index: tx.previous_output.vout,
             sequence: tx.sequence.0,
             script_sig: tx.script_sig.hex(),
-            witness: format!("{}", JsWitnessDisplay(tx.witness)),
+            witness: tx.witness.iter().map(|x| x.hex()).collect(),
         })
     }
 }
@@ -172,42 +178,6 @@ impl TryFrom<Transaction> for JsTx {
     }
 }
 
-struct JsWitness<'a>(&'a str);
-
-impl<'a> TryFrom<JsWitness<'a>> for Witness {
-    type Error = anyhow::Error;
-
-    fn try_from(value: JsWitness<'a>) -> Result<Self, Self::Error> {
-        let mut witness = Witness::new();
-        let split = value.0.split(',');
-        for x in split {
-            let squashed = x.chars().filter(|c| !c.is_whitespace()).collect::<String>();
-            if squashed.is_empty() {
-                continue;
-            }
-            witness.push(hex::decode(squashed)?);
-        }
-        Ok(witness)
-    }
-}
-
-struct JsWitnessDisplay(Witness);
-
-impl Display for JsWitnessDisplay {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        use fmt::Write;
-
-        for (i, item) in self.0.iter().enumerate() {
-            if i == self.0.len() - 1 {
-                // the last item. do not append extra newline
-                write!(f, "{}", item.hex())?;
-            } else {
-                writeln!(f, "{},\n", item.hex())?;
-            }
-        }
-        Ok(())
-    }
-}
 
 impl FromStr for JsTx {
     type Err = anyhow::Error;
@@ -393,27 +363,4 @@ impl From<consensus::encode::Error> for ConsensusErrorDesc {
 
 #[cfg(test)]
 mod test {
-    use crate::bitcoin::{JsWitness, JsWitnessDisplay};
-    use bitcoin::witness::WitnessExt;
-    use bitcoin::Witness;
-    use hex_literal::hex;
-    use std::convert::TryFrom;
-
-    #[test]
-    fn js_witness_display() {
-        let mut witness = Witness::new();
-        assert_eq!(JsWitnessDisplay(witness.clone()).to_string(), "");
-        witness.push([0xfe]);
-        assert_eq!(JsWitnessDisplay(witness.clone()).to_string(), "fe");
-        witness.push([0xfe]);
-        assert_eq!(JsWitnessDisplay(witness.clone()).to_string(), "fe,\n\nfe");
-    }
-
-    #[test]
-    fn js_witness_try_from() {
-        assert_eq!(Witness::try_from(JsWitness("")).unwrap().to_vec(), Vec::<Vec<u8>>::default());
-        assert_eq!(Witness::try_from(JsWitness("fe")).unwrap().to_vec(), [hex!("fe")]);
-        assert_eq!(Witness::try_from(JsWitness("fe\nfb\n\nbe")).unwrap().to_vec(), [hex!("fefbbe")]);
-        assert_eq!(Witness::try_from(JsWitness("fe\nfb\n\nbe,  \n\n  \n ff")).unwrap().to_vec(), [&hex!("fefbbe")[..], &hex!("ff")[..]]);
-    }
 }
