@@ -14,7 +14,7 @@ let props = defineProps<{
 
 let emit = defineEmits(['remove']);
 
-let model = defineModel('value');
+let model = defineModel<string>('value');
 
 type DropdownKey = 'remove' | 'script info' | 'insert';
 

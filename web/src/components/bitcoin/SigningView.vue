@@ -3,15 +3,10 @@ import {SIGHASH_OPTIONS, SignatureParams, SigningType, Transaction} from "../../
 import {ref} from "vue";
 import {CreateOutline as CreateIcon, InformationOutline as InfoIcon} from '@vicons/ionicons5';
 import SelectableIcon from "./SelectableIcon.vue";
-import {SigningResult} from "../../lib.ts";
 import ScriptInfoModal from "./ScriptInfoModal.vue";
 import TxoScriptPubKeyInputModal from "./TxoScriptPubKeyInputModal.vue";
 import ScriptInput from "./ScriptInput.vue";
 import SecretKeyFromWifModal from "./SecretKeyFromWifModal.vue";
-
-let emit = defineEmits<{
-  result: [value: SigningResult],
-}>();
 
 let props = defineProps<{
   tx: Transaction,
