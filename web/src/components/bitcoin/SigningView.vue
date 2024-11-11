@@ -4,14 +4,17 @@ import {ref} from "vue";
 import {CreateOutline as CreateIcon, InformationOutline as InfoIcon} from '@vicons/ionicons5';
 import SelectableIcon from "./SelectableIcon.vue";
 import SecretKeyFromWifModal from "./SecretKeyFromWifModal.vue";
-import {useWasm} from "../../lib.ts";
+import {safeParseInt, safeToBigInt, SigningResult, useWasm} from "../../lib.ts";
 import {useMessage} from 'naive-ui';
 import ScriptAsmModal from "./ScriptAsmModal.vue";
 import TxoScriptPubKeyInputModal from "./TxoScriptPubKeyInputModal.vue";
+import ScriptInput from "./ScriptInput.vue";
 
 let message = useMessage();
 
-let emit = defineEmits(['result']);
+let emit = defineEmits<{
+  result: [value: SigningResult],
+}>();
 
 let props = defineProps<{
   tx: Transaction,
@@ -35,9 +38,22 @@ function sigHashCode(value: SigHashKey) {
   return sigHashOptions.find(x => x.value === value)!!.code;
 }
 
+type SigningType = 'legacy' | 'p2wpkh' | 'p2wsh';
+
+let signingTypeRadioOptions: { value: SigningType, label: string }[] = [
+  {value: 'legacy', label: 'Legacy'},
+  {value: 'p2wpkh', label: 'P2WPKH'},
+  {value: 'p2wsh', label: 'P2WSH'},
+];
+
+let signingTypeSelected = ref<SigningType>('legacy');
+
 let sigHash = ref<SigHashKey>('All');
 let secretKey = ref('');
 let publicKey = ref('');
+
+let witnessScript = ref('');
+let commitmentAmount = ref('');
 
 let showModal = ref({
   secretKeyFromWif: false,
@@ -47,15 +63,24 @@ let showModal = ref({
 
 function signClick() {
   try {
-    let scriptSig = useWasm().TxBuilder.sign_for_script_sig(
+    let wasm = useWasm();
+    let amount = safeToBigInt(commitmentAmount.value);
+    let signature = wasm.TxBuilder.sign_tx(
         JSON.stringify(props.tx),
         props.index,
         txoScriptPubKey.value,
         sigHashCode(sigHash.value),
         secretKey.value,
-        publicKey.value,
+        witnessScript.value,
+        amount as bigint,
+        signingTypeSelected.value,
     );
-    emit('result', scriptSig);
+    let publicKey = wasm.TxBuilder.secret_to_public_key_compressed(secretKey.value);
+    let result: SigningResult = {
+      signature,
+      publicKey,
+    };
+    emit('result', result);
   } catch (e: any) {
     console.log(e);
     message.error(e.toString());
@@ -73,7 +98,15 @@ function signClick() {
   <TxoScriptPubKeyInputModal v-model:show="showModal.txoScriptPubKeyFromAddress"
                              @result="x => txoScriptPubKey = x"/>
 
-  <n-h5>Signing for TxIn #{{ props.index }}</n-h5>
+
+  <n-h5 style="margin: 0">Signing for TxIn #{{ props.index }}</n-h5>
+  <n-radio-group v-model:value="signingTypeSelected"
+                 style="margin: .5em 0">
+    <n-radio v-for="x in signingTypeRadioOptions"
+             :label="x.label"
+             :value="x.value"
+    />
+  </n-radio-group>
   <div id="form-list">
     <div>
       <div style="display: inline-flex; align-items: center">
@@ -101,9 +134,14 @@ function signClick() {
       </div>
       <n-input type="textarea" v-model:value="secretKey" placeholder="32-byte Hex"/>
     </div>
-    <div>
-      <span>Public Key</span>
-      <n-input type="textarea" placeholder="Hex" v-model:value="publicKey"/>
+    <div style="display: inline-flex; align-items: center; gap: .5em;" v-if="signingTypeSelected != 'legacy'">
+      <span>Amount</span>
+      <n-input placeholder="Sats" autosize style="min-width: 10em"
+               v-model:value="commitmentAmount"
+      />
+    </div>
+    <div v-if="signingTypeSelected == 'p2wsh'">
+      <ScriptInput title="Witness Script" show-info-button v-model:value="witnessScript"/>
     </div>
     <n-space justify="center">
       <n-button type="primary" @click="signClick">Sign</n-button>

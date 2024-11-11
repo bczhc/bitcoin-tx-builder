@@ -27,3 +27,9 @@ export function safeParseInt(x: string) {
     }
     return result;
 }
+
+export function safeToBigInt(x: string) {
+    return BigInt(safeParseInt(x));
+}
+
+export type SigningResult = { signature: string, publicKey: string };

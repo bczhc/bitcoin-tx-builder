@@ -2,6 +2,7 @@
 
 use crate::errors::{AnyhowExt, ResultExt};
 use crate::hashes::{hash160, ripemd160, sha1, sha256, sha256d, DigestType};
+use anyhow::anyhow;
 use bitcoin::address::script_pubkey;
 use bitcoin::address::script_pubkey::{BuilderExt, ScriptExt as ScriptExt2};
 use bitcoin::hashes::Hash;
@@ -11,14 +12,15 @@ use bitcoin::secp256k1::{Message, SecretKey};
 use bitcoin::sighash::SighashCache;
 use bitcoin::transaction::Version;
 use bitcoin::{
-    absolute, consensus, Address, Amount, KnownHrp, Network, OutPoint, PrivateKey, PublicKey,
-    Script, ScriptBuf, Sequence, Transaction, TxIn, TxOut, Witness,
+    absolute, consensus, Address, Amount, EcdsaSighashType, KnownHrp, Network, OutPoint,
+    PrivateKey, PublicKey, Script, ScriptBuf, Sequence, Transaction, TxIn, TxOut, Witness,
 };
 use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+use strum::{EnumString, IntoStaticStr};
 use wasm_bindgen::prelude::wasm_bindgen;
 
 #[wasm_bindgen]
@@ -201,6 +203,21 @@ where
     }
 }
 
+/// Returns the bitcoin signature: `(<ecdsa-signature> <sighash-flag>)`
+pub fn sign_sighash(
+    sighash: impl AsRef<[u8]>,
+    secret: &SecretKey,
+    sighash_flag: EcdsaSighashType,
+) -> Vec<u8> {
+    let message = Message::from_digest(sighash.as_ref().try_into().expect("Length must be 32"));
+    let mut signature = Secp256k1::default()
+        .sign_ecdsa(&message, secret)
+        .serialize_der()
+        .to_vec();
+    signature.push(sighash_flag as u8);
+    signature
+}
+
 #[wasm_bindgen]
 impl TxBuilder {
     pub fn json_to_tx_hex(json: &str) -> crate::Result<String> {
@@ -229,40 +246,70 @@ impl TxBuilder {
         r.map_err_string()
     }
 
-    pub fn sign_for_script_sig(
-        tx: &str,
-        input_index: usize,
+    pub fn sign_tx(
+        tx_json: &str,
+        index: u32,
         txo_script_pubkey: &str,
         sighash_type: u32,
         secret_key: &str,
-        public_key: &str,
+        // for p2wsh signing use
+        witness_script: Option<String>,
+        // for p2wsh and p2wpkh signing use
+        amount: Option<u64>,
+        signing_type: &str,
     ) -> crate::Result<String> {
         let r: anyhow::Result<_> = try {
-            let tx: JsTx = tx.parse()?;
+            let tx: JsTx = tx_json.parse()?;
             let tx: Transaction = tx.try_into()?;
             let txo_script_pubkey = ScriptBuf::from_bytes(hex::decode(txo_script_pubkey)?);
             let secret = SecretKey::from_slice(&hex::decode(secret_key)?)?;
-            let public = PublicKey::from_slice(&hex::decode(public_key)?)?;
+            let sighash_type = EcdsaSighashType::from_consensus(sighash_type);
 
-            let sighash_cache = SighashCache::new(tx);
-            let sighash = sighash_cache.legacy_signature_hash(
-                input_index,
-                &txo_script_pubkey,
-                sighash_type,
-            )?;
+            let signing_type = SigningType::from_str(signing_type)?;
+            let sighash = match signing_type {
+                SigningType::Legacy => {
+                    let cache = SighashCache::new(tx);
+                    let sighash = cache.legacy_signature_hash(
+                        index as usize,
+                        &txo_script_pubkey,
+                        sighash_type as u32,
+                    )?;
+                    sighash.to_byte_array()
+                }
+                SigningType::P2wpkh => {
+                    let mut cache = SighashCache::new(tx);
+                    let sighash = cache.p2wpkh_signature_hash(
+                        index as usize,
+                        &txo_script_pubkey,
+                        Amount::from_sat(amount.ok_or(anyhow!("Missing commitment amount"))?),
+                        sighash_type,
+                    )?;
+                    sighash.to_byte_array()
+                }
+                SigningType::P2wsh => {
+                    let mut cache = SighashCache::new(tx);
+                    let sighash = cache.p2wsh_signature_hash(
+                        index as usize,
+                        &Self::parse_script_hex(
+                            &witness_script.ok_or(anyhow!("Missing witness_script"))?,
+                        )?,
+                        Amount::from_sat(amount.ok_or(anyhow!("Missing commitment amount"))?),
+                        sighash_type,
+                    )?;
+                    sighash.to_byte_array()
+                }
+            };
+            let signature = sign_sighash(sighash, &secret, sighash_type);
+            signature.hex()
+        };
+        r.map_err_string()
+    }
 
-            let secp = Secp256k1::default();
-            let message = Message::from_digest(sighash.to_byte_array());
-            let signature = secp.sign_ecdsa(&message, &secret);
-
-            let mut der = signature.serialize_der().as_ref().to_vec();
-            der.push(sighash_type as u8);
-
-            let script_sig = ScriptBuf::builder()
-                .push_slice_try_from(der.as_ref())?
-                .push_key(public)
-                .into_script();
-            script_sig.hex()
+    pub fn secret_to_public_key_compressed(secret: &str) -> crate::Result<String> {
+        let r: anyhow::Result<_> = try {
+            let ec = SecretKey::from_slice(&hex::decode(secret)?)?;
+            let public = ec.public_key(&Default::default());
+            public.serialize().hex()
         };
         r.map_err_string()
     }
@@ -343,6 +390,26 @@ impl TxBuilder {
         };
         r.map_err_string()
     }
+
+    pub fn create_p2wpkh_script_sig(signature: &str, pubkey: &str) -> crate::Result<String> {
+        let r: anyhow::Result<_> = try {
+            // <signature> <public-key>
+            let script = ScriptBuf::builder()
+                .push_slice_try_from(&hex::decode(signature)?)?
+                .push_key(PublicKey::from_slice(&hex::decode(pubkey)?)?)
+                .into_script();
+            script.hex()
+        };
+        r.map_err_string()
+    }
+}
+
+#[derive(EnumString, IntoStaticStr, Debug)]
+#[strum(ascii_case_insensitive)]
+enum SigningType {
+    Legacy,
+    P2wpkh,
+    P2wsh,
 }
 
 pub trait ScriptsBuilderExt

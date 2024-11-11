@@ -26,7 +26,7 @@ let showModal = ref({
         <InfoIcon/>
       </SelectableIcon>
     </div>
-    <n-input type="textarea" v-model:value="valueModel"/>
+    <n-input type="textarea" v-model:value="valueModel" placeholder="Script Hex"/>
   </div>
 </template>
 

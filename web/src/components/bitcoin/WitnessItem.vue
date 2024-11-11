@@ -13,7 +13,7 @@ let emit = defineEmits(['remove']);
 
 let model = defineModel('value');
 
-type DropdownKey = 'remove' | 'script asm';
+type DropdownKey = 'remove' | 'script asm' | 'insert';
 
 let dropdownOptions: { label: string, key: DropdownKey }[] = [
   {label: 'Script ASM', key: 'script asm'},
@@ -22,6 +22,7 @@ let dropdownOptions: { label: string, key: DropdownKey }[] = [
 
 let showModal = ref({
   scriptAsm: false,
+  insert: false,
 });
 
 function onDropdownSelected(key: DropdownKey) {
@@ -31,6 +32,9 @@ function onDropdownSelected(key: DropdownKey) {
       break;
     case 'script asm':
       showModal.value.scriptAsm = true;
+      break;
+    case "insert":
+      showModal.value.insert = true;
       break;
   }
 }
