@@ -108,8 +108,8 @@ impl TryFrom<JsTx> for Transaction {
                         sequence: Sequence(x.sequence),
                         witness: {
                             let mut w = Witness::new();
-                            for x in x.witness {
-                                w.push(hex::decode(x));
+                            for x in &x.witness {
+                                w.push(hex::decode(x)?);
                             }
                             w
                         },
