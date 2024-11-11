@@ -430,6 +430,13 @@ impl TxBuilder {
         };
         r.map_err_string()
     }
+
+    pub fn op_return_script_pubkey(text: &str) -> crate::Result<String>{
+        let r: anyhow::Result<_> = try {
+            ScriptBuf::new_op_return(<&PushBytes>::try_from(text.as_bytes())?).hex()
+        };
+        r.map_err_string()
+    }
 }
 
 #[derive(Serialize)]

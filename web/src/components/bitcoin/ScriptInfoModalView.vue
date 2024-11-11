@@ -49,7 +49,7 @@ let parseError: ComputedRef<string> = computed(() => {
       </div>
     </div>
     <div v-if="scriptInfo!!.opReturnData">
-      <span class="label">OP_RETURN data</span>
+      <span class="label">OP_RETURN Data</span>
       <div class="content">
         {{ scriptInfo!!.opReturnData!! }}
       </div>

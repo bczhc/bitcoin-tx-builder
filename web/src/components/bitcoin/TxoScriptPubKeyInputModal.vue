@@ -14,12 +14,13 @@ let wasm = useWasm();
 
 let address = ref('');
 let redeem = ref('');
+let text = ref('');
 
 let showModal = ref({
   scriptInfo: false,
 });
 
-type TabValue = 'Address' | 'Create P2SH' | 'Create P2WSH';
+type TabValue = 'Address' | 'Create P2SH' | 'Create P2WSH' | 'OP_RETURN';
 let tabValue: Ref<TabValue> = ref('Address');
 
 function doneClick() {
@@ -38,10 +39,15 @@ function doneClick() {
         r = wasm.TxBuilder.create_p2wsh_script_pubkey(redeem.value);
         emit('result', r);
         break;
+      case "OP_RETURN":
+        r = wasm.TxBuilder.op_return_script_pubkey(text.value);
+        emit('result', r);
+        break;
     }
     model.value = false;
   } catch (e: any) {
     message.error(e.toString());
+    console.log(e);
   }
 }
 </script>
@@ -80,6 +86,10 @@ function doneClick() {
           <SelectableIcon @click="showModal.scriptInfo = true">
             <InfoIcon/>
           </SelectableIcon>
+        </n-tab-pane>
+        <n-tab-pane name="OP_RETURN"
+                    style="display: flex; align-items: center">
+          <n-input v-model:value="text" placeholder="Text"/>
         </n-tab-pane>
       </n-tabs>
       <n-space justify="end" style="margin-top: .5em">
