@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {SIGHASH_OPTIONS, SigHashKey, SignatureParams, SigningType, Transaction} from "../../bitcoin.ts";
+import {SIGHASH_OPTIONS, SignatureParams, SigningType, Transaction} from "../../bitcoin.ts";
 import {ref} from "vue";
 import {CreateOutline as CreateIcon, InformationOutline as InfoIcon} from '@vicons/ionicons5';
 import SelectableIcon from "./SelectableIcon.vue";
@@ -17,8 +17,6 @@ let props = defineProps<{
   tx: Transaction,
   index: number,
 }>();
-
-let txoScriptPubKey = ref('');
 
 let signingTypeRadioOptions: { value: SigningType, label: string }[] = [
   {value: 'legacy', label: 'Legacy'},
@@ -41,9 +39,9 @@ let model = defineModel<SignatureParams>('value');
       @ec-result="x => model.secretKey = x"
   />
 
-  <ScriptInfoModal :script-hex="txoScriptPubKey" v-model:show="showModal.txoScriptPubKeyInfo"/>
+  <ScriptInfoModal :script-hex="model.txoScriptPubKey" v-model:show="showModal.txoScriptPubKeyInfo"/>
   <TxoScriptPubKeyInputModal v-model:show="showModal.txoScriptPubKeyFromAddress"
-                             @result="x => txoScriptPubKey = x"/>
+                             @result="x => model.txoScriptPubKey = x"/>
 
 
   <n-h5 style="margin: 0">Signing for TxIn #{{ props.index }}</n-h5>
