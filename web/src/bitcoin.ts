@@ -1,3 +1,5 @@
+import {safeToBigInt, SigningResult, useWasm} from "./lib.ts";
+
 export interface Transaction {
     version: number,
     lockTime: number,
@@ -49,6 +51,60 @@ export function defaultTxOut(): TxOut {
         amount: 0,
         scriptPubKey: '',
     };
+}
+
+export type SigningType = 'legacy' | 'p2wpkh' | 'p2wsh';
+
+export interface SignatureParams {
+    signingType: SigningType,
+    txoScriptPubKey: string,
+    sighashTypeName: SigHashKey,
+    secretKey: string,
+    /**
+     * only used in p2wpkh & p2wsh (segwit)
+     */
+    amount?: string,
+    /**
+     * only used in p2wsh
+     */
+    witnessScript?: string,
+}
+
+export const SIGHASH_OPTIONS: { label: string, value: SigHashKey, code: number }[] = [
+    {label: 'All - 0x01', value: 'All', code: 0x01},
+    {label: 'None - 0x02', value: 'None', code: 0x02},
+    {label: 'Single - 0x03', value: 'Single', code: 0x03},
+    {label: 'All+AnyoneCanPay - 0x81', value: 'AllPlusAnyoneCanPay', code: 0x81},
+    {label: 'None+AnyoneCanPay - 0x82', value: 'NonePlusAnyoneCanPay', code: 0x82},
+    {label: 'Single+AnyoneCanPay - 0x83', value: 'SinglePlusAnyoneCanPay', code: 0x83},
+];
+
+export function sigHashCode(value: SigHashKey) {
+    return SIGHASH_OPTIONS.find(x => x.value === value)!!.code;
+}
+
+export type SigHashKey = 'All' | 'None' | 'Single'
+    | 'AllPlusAnyoneCanPay' | 'NonePlusAnyoneCanPay' | 'SinglePlusAnyoneCanPay';
+
+export function signForSignature(params: SignatureParams, tx: Transaction, index: number) {
+    let wasm = useWasm();
+    let amount = safeToBigInt(params.amount || '');
+    let signature = wasm.TxBuilder.sign_tx(
+        JSON.stringify(tx),
+        index,
+        params.txoScriptPubKey,
+        sigHashCode(params.sighashTypeName),
+        params.secretKey,
+        params.witnessScript || '',
+        amount,
+        params.signingType,
+    );
+    let publicKey = wasm.TxBuilder.secret_to_public_key_compressed(params.secretKey);
+    let result: SigningResult = {
+        signature,
+        publicKey,
+    };
+    return result;
 }
 
 export type NetworkType = 'bitcoin' | 'testnet' | 'testnet4' | 'sigtest' | 'regtest';

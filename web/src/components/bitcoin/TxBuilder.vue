@@ -3,7 +3,8 @@ import Frame from "./Frame.vue";
 import TxInCard from "./TxInCard.vue";
 import {computed, ComputedRef, Ref, ref, watch} from "vue";
 import {
-  CHECK_DIGITS, defaultTx,
+  CHECK_DIGITS,
+  defaultTx,
   defaultTxIn,
   defaultTxOut,
   GLOBAL_NETWORK,
@@ -15,7 +16,7 @@ import {
 } from "../../bitcoin.ts";
 import {ArrowForward as Arrow} from '@vicons/ionicons5';
 import TxOutCard from "./TxOutCard.vue";
-import {safeParseInt, useWasm} from "../../lib.ts";
+import {useWasm} from "../../lib.ts";
 import {useRoute, useRouter} from "vue-router";
 import ImportTxModal from "./ImportTxModal.vue";
 

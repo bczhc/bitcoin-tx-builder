@@ -106,6 +106,7 @@ function enterSequence(value: number) {
       <div id="witness-flex">
         <WitnessItem v-for="(_, index) in valueModel.witness"
                      :index="index"
+                     :tx="props.tx"
                      @remove="valueModel.witness.splice(index, 1)"
                      v-model:value="valueModel.witness[index]"
         />

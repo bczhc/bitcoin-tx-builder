@@ -75,7 +75,7 @@ function signingDoneClicked() {
           </div>
           <div>
             <n-space justify="center">
-              <n-button @click="signingDoneClicked">Done</n-button>
+              <n-button @click="signingDoneClicked" type="primary">Done</n-button>
             </n-space>
           </div>
         </n-tab-pane>
