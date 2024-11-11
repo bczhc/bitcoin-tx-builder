@@ -115,6 +115,12 @@ export function validateTxSerialization(tx: Transaction) {
     }
 }
 
+export interface ScriptInfo {
+    type: string,
+    asm: string,
+    opReturnData?: string,
+}
+
 export type NetworkType = 'bitcoin' | 'testnet' | 'testnet4' | 'sigtest' | 'regtest';
 export let GLOBAL_NETWORK: NetworkType = 'bitcoin';
 

@@ -5,7 +5,7 @@ import {safeParseInt} from "../../lib.ts";
 import SelectableIcon from "./SelectableIcon.vue";
 import {Add as AddIcon, CreateOutline as CreateIcon, InformationOutline as InfoIcon} from '@vicons/ionicons5';
 import {ref} from "vue";
-import ScriptAsmModal from "./ScriptAsmModal.vue";
+import ScriptInfoModal from "./ScriptInfoModal.vue";
 import TxiScriptSigInputModal from "./TxiScriptSigInputModal.vue";
 import WitnessItem from "./WitnessItem.vue";
 
@@ -57,7 +57,7 @@ function enterSequence(value: number) {
     </n-card>
   </n-modal>
 
-  <ScriptAsmModal :script-hex="valueModel.scriptSig" v-model:show="showModal.scriptSigInfo"/>
+  <ScriptInfoModal :script-hex="valueModel.scriptSig" v-model:show="showModal.scriptSigInfo"/>
 
   <Frame :title="`TxIn #${props.index}`" title-adjust="left" title-size="normal" show-close-icon @close="emit('close')">
     <div class="cell">

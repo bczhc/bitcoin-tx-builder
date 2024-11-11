@@ -4,7 +4,7 @@ import {safeParseInt} from "../../lib.ts";
 import {ref} from "vue";
 import {CreateOutline as CreateIcon, InformationOutline as InfoIcon} from '@vicons/ionicons5';
 import SelectableIcon from "./SelectableIcon.vue";
-import ScriptAsmModal from "./ScriptAsmModal.vue";
+import ScriptInfoModal from "./ScriptInfoModal.vue";
 import TxoScriptPubKeyInputModal from "./TxoScriptPubKeyInputModal.vue";
 import {TxOut} from "../../bitcoin.ts";
 
@@ -24,7 +24,7 @@ let props = defineProps<{
 <template>
   <TxoScriptPubKeyInputModal v-model:show="showModal.scriptPubKeyHelper"
                              @result="x => valueModel.scriptPubKey = x"/>
-  <ScriptAsmModal :script-hex="valueModel.scriptPubKey" v-model:show="showModal.scriptPubKeyInfo"/>
+  <ScriptInfoModal :script-hex="valueModel.scriptPubKey" v-model:show="showModal.scriptPubKeyInfo"/>
 
   <Frame :title="`TxOut #${props.index}`" title-adjust="left" title-size="normal" show-close-icon
          @close="emit('close')">

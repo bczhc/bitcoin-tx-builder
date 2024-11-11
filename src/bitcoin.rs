@@ -7,6 +7,7 @@ use bitcoin::address::script_pubkey;
 use bitcoin::address::script_pubkey::{BuilderExt, ScriptExt as ScriptExt2};
 use bitcoin::hashes::Hash;
 use bitcoin::key::Secp256k1;
+use bitcoin::opcodes::all::{OP_PUSHBYTES_1, OP_PUSHBYTES_75, OP_PUSHDATA1};
 use bitcoin::script::{PushBytes, ScriptBufExt, ScriptExt};
 use bitcoin::secp256k1::{Message, SecretKey};
 use bitcoin::sighash::SighashCache;
@@ -402,6 +403,41 @@ impl TxBuilder {
         };
         r.map_err_string()
     }
+
+    pub fn script_info(script: &str) -> crate::Result<String> {
+        let r: anyhow::Result<_> = try {
+            let script = Self::parse_script_hex(script)?;
+            let script_type = match () {
+                _ if script.is_empty() => Some("Empty"),
+                _ if script.is_p2sh() => Some("P2SH"),
+                _ if script.is_p2tr() => Some("P2TR"),
+                _ if script.is_p2wpkh() => Some("P2WPKH"),
+                _ if script.is_p2wsh() => Some("P2WSH"),
+                _ if script.is_p2pkh() => Some("P2PKH"),
+                _ if script.is_p2pk() => Some("P2PK"),
+                _ if script.is_op_return() => Some("OP_RETURN"),
+                _ if script.is_witness_program() => Some("Witness Program"),
+                _ => None,
+            };
+            let op_return_data =
+                extract_op_return(&script).map(|x| String::from_utf8_lossy(x).to_string());
+            let info = ScriptInfo {
+                asm: &script.to_asm_string(),
+                r#type: script_type.map(Into::into),
+                op_return_data,
+            };
+            serde_json::to_string(&info).unwrap()
+        };
+        r.map_err_string()
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ScriptInfo<'a> {
+    r#type: Option<String>,
+    asm: &'a str,
+    op_return_data: Option<String>,
 }
 
 #[derive(EnumString, IntoStaticStr, Debug)]
@@ -453,6 +489,47 @@ impl From<consensus::encode::Error> for ConsensusErrorDesc {
     fn from(value: consensus::encode::Error) -> Self {
         Self(format!("{value}"))
     }
+}
+
+/// Extract the data from an `OP_RETURN` script.
+pub fn extract_op_return(script: &Script) -> Option<&[u8]> {
+    if !script.is_op_return() {
+        return None;
+    }
+
+    let bytes = script.as_bytes();
+
+    // merely OP_RETURN
+    if bytes.len() == 1 {
+        return None;
+    }
+
+    // OP_RETURN <OP_PUSHBYTES_1..=OP_PUSHBYTES_75> <data>
+    if bytes.get(1).is_none() {
+        return None;
+    }
+    if (OP_PUSHBYTES_1.to_u8()..=OP_PUSHBYTES_75.to_u8()).contains(&bytes[1]) {
+        let pushed_len = (bytes[1] - OP_PUSHBYTES_1.to_u8() + 1) as usize;
+        if bytes.len() - 2 < pushed_len {
+            return None;
+        }
+        let data = &bytes[2..(2 + pushed_len)];
+        return Some(data);
+    }
+
+    // OP_RETURN <OP_PUSHDATA1> <length> <data>
+    if bytes.get(1).is_none() || bytes.get(2).is_none() {
+        return None;
+    }
+    if bytes[1] == OP_PUSHDATA1.to_u8() {
+        let len = bytes[2] as usize;
+        if bytes.len() - 3 < len {
+            return None;
+        }
+        return Some(&bytes[3..(3 + len)]);
+    }
+
+    None
 }
 
 #[cfg(test)]

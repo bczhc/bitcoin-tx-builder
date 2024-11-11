@@ -4,7 +4,7 @@ import {ref} from "vue";
 import {CreateOutline as CreateIcon, InformationOutline as InfoIcon} from '@vicons/ionicons5';
 import SelectableIcon from "./SelectableIcon.vue";
 import {SigningResult} from "../../lib.ts";
-import ScriptAsmModal from "./ScriptAsmModal.vue";
+import ScriptInfoModal from "./ScriptInfoModal.vue";
 import TxoScriptPubKeyInputModal from "./TxoScriptPubKeyInputModal.vue";
 import ScriptInput from "./ScriptInput.vue";
 import SecretKeyFromWifModal from "./SecretKeyFromWifModal.vue";
@@ -41,7 +41,7 @@ let model = defineModel<SignatureParams>('value');
       @ec-result="x => model.secretKey = x"
   />
 
-  <ScriptAsmModal :script-hex="txoScriptPubKey" v-model:show="showModal.txoScriptPubKeyInfo"/>
+  <ScriptInfoModal :script-hex="txoScriptPubKey" v-model:show="showModal.txoScriptPubKeyInfo"/>
   <TxoScriptPubKeyInputModal v-model:show="showModal.txoScriptPubKeyFromAddress"
                              @result="x => txoScriptPubKey = x"/>
 

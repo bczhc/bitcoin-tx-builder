@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import ScriptAsmModalView from "./ScriptAsmModalView.vue";
+import ScriptInfoModalView from "./ScriptInfoModalView.vue";
 
 let model = defineModel('show');
 let props = defineProps<{
@@ -12,13 +12,13 @@ let props = defineProps<{
   >
     <n-card
         style="width: 600px"
-        title="Script Assembly"
+        title="Script Info"
         :bordered="false"
         size="huge"
         role="dialog"
         aria-modal="true"
     >
-      <ScriptAsmModalView :script-hex="props.scriptHex"/>
+      <ScriptInfoModalView :script-hex="props.scriptHex"/>
     </n-card>
   </n-modal>
 </template>

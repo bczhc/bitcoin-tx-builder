@@ -3,7 +3,7 @@
 import {ref} from "vue";
 import {EllipsisHorizontal as EllipsisIcon} from "@vicons/ionicons5";
 import SelectableIcon from "./SelectableIcon.vue";
-import ScriptAsmModal from "./ScriptAsmModal.vue";
+import ScriptInfoModal from "./ScriptInfoModal.vue";
 import WitnessItemInsertModal from "./WitnessItemInsertModal.vue";
 import {Transaction} from "../../bitcoin.ts";
 
@@ -16,16 +16,16 @@ let emit = defineEmits(['remove']);
 
 let model = defineModel('value');
 
-type DropdownKey = 'remove' | 'script asm' | 'insert';
+type DropdownKey = 'remove' | 'script info' | 'insert';
 
 let dropdownOptions: { label: string, key: DropdownKey }[] = [
   {label: 'Insert', key: 'insert'},
-  {label: 'Script ASM', key: 'script asm'},
+  {label: 'Script Info', key: 'script info'},
   {label: 'Remove', key: 'remove'}
 ];
 
 let showModal = ref({
-  scriptAsm: false,
+  scriptInfo: false,
   insert: false,
 });
 
@@ -34,8 +34,8 @@ function onDropdownSelected(key: DropdownKey) {
     case "remove":
       emit('remove');
       break;
-    case 'script asm':
-      showModal.value.scriptAsm = true;
+    case 'script info':
+      showModal.value.scriptInfo = true;
       break;
     case "insert":
       showModal.value.insert = true;
@@ -45,7 +45,7 @@ function onDropdownSelected(key: DropdownKey) {
 </script>
 
 <template>
-  <ScriptAsmModal :script-hex="model" v-model:show="showModal.scriptAsm"/>
+  <ScriptInfoModal :script-hex="model" v-model:show="showModal.scriptInfo"/>
   <WitnessItemInsertModal
       v-model:show="showModal.insert"
       :index="props.index"

@@ -2,7 +2,7 @@
 import {Ref, ref} from "vue";
 import SelectableIcon from "./SelectableIcon.vue";
 import {InformationOutline as InfoIcon} from '@vicons/ionicons5';
-import ScriptAsmModal from "./ScriptAsmModal.vue";
+import ScriptInfoModal from "./ScriptInfoModal.vue";
 import {useWasm} from "../../lib.ts";
 import {useMessage} from 'naive-ui';
 import {GLOBAL_NETWORK} from "../../bitcoin.ts";
@@ -47,7 +47,7 @@ function doneClick() {
 </script>
 
 <template>
-  <ScriptAsmModal :script-hex="redeem" v-model:show="showModal.scriptInfo"/>
+  <ScriptInfoModal :script-hex="redeem" v-model:show="showModal.scriptInfo"/>
 
   <n-modal v-model:show="model"
   >
