@@ -107,6 +107,14 @@ export function signForSignature(params: SignatureParams, tx: Transaction, index
     return result;
 }
 
+export function validateTxSerialization(tx: Transaction) {
+    try {
+        useWasm().TxBuilder.json_to_tx_hex(JSON.stringify(tx))
+    } catch (e: any) {
+        throw 'Transaction serialization failed. Please fill the missing fields.';
+    }
+}
+
 export type NetworkType = 'bitcoin' | 'testnet' | 'testnet4' | 'sigtest' | 'regtest';
 export let GLOBAL_NETWORK: NetworkType = 'bitcoin';
 

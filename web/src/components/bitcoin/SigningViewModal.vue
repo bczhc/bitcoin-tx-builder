@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import SigningView from "./SigningView.vue";
-import {SignatureParams, signForSignature, Transaction} from "../../bitcoin.ts";
+import {SignatureParams, signForSignature, Transaction, validateTxSerialization} from "../../bitcoin.ts";
 import {SigningResult} from "../../lib.ts";
 import {ref} from "vue";
 import {useMessage} from "naive-ui";
@@ -29,6 +29,7 @@ let signingParams = ref<SignatureParams>({
 
 function signClick() {
   try {
+    validateTxSerialization(props.tx);
     let result = signForSignature(signingParams.value, props.tx, props.index);
     emit('result', result);
     model.value = false;

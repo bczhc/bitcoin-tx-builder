@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {Ref, ref} from "vue";
 import SigningView from "./SigningView.vue";
-import {SignatureParams, signForSignature, Transaction} from "../../bitcoin.ts";
+import {SignatureParams, signForSignature, Transaction, validateTxSerialization} from "../../bitcoin.ts";
 import {useMessage} from 'naive-ui';
 import {useWasm} from "../../lib.ts";
 
@@ -32,6 +32,7 @@ let emit = defineEmits(['result']);
 
 function doneClicked() {
   try {
+    validateTxSerialization(props.tx);
     switch (tabValue.value) {
       case 'Signature':
         let result = signForSignature(signingParams.value, props.tx, props.index);
