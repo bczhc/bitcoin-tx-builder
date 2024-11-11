@@ -16,7 +16,7 @@ import {
 } from "../../bitcoin.ts";
 import {ArrowForward as Arrow} from '@vicons/ionicons5';
 import TxOutCard from "./TxOutCard.vue";
-import {useWasm} from "../../lib.ts";
+import {useWasm, safeParseInt} from "../../lib.ts";
 import {useRoute, useRouter} from "vue-router";
 import ImportTxModal from "./ImportTxModal.vue";
 
