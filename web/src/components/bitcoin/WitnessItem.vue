@@ -59,7 +59,9 @@ function onDropdownSelected(key: DropdownKey) {
       <div style="display: inline-flex; flex-direction: column">
         <span class="label">[{{ index }}]</span>
         <n-dropdown :options="dropdownOptions"
-                    @select="onDropdownSelected">
+                    @select="onDropdownSelected"
+                    trigger="hover"
+        >
           <SelectableIcon>
             <EllipsisIcon class="icon"/>
           </SelectableIcon>
