@@ -19,7 +19,7 @@ let showModal = ref({
   scriptInfo: false,
 });
 
-type TabValue = 'Address' | 'Create P2SH';
+type TabValue = 'Address' | 'Create P2SH' | 'Create P2WSH';
 let tabValue: Ref<TabValue> = ref('Address');
 
 function doneClick() {
@@ -32,6 +32,10 @@ function doneClick() {
         break;
       case "Create P2SH":
         r = wasm.TxBuilder.generate_p2sh_pub_key(redeem.value);
+        emit('result', r);
+        break;
+      case "Create P2WSH":
+        r = wasm.TxBuilder.create_p2wsh_script_pubkey(redeem.value);
         emit('result', r);
         break;
     }
@@ -64,6 +68,15 @@ function doneClick() {
             style="display: flex; align-items: center"
         >
           <n-input v-model:value="redeem" placeholder="Redeem Script Hex" type="textarea"/>
+          <SelectableIcon @click="showModal.scriptInfo = true">
+            <InfoIcon/>
+          </SelectableIcon>
+        </n-tab-pane>
+        <n-tab-pane
+            name="Create P2WSH"
+            style="display: flex; align-items: center"
+        >
+          <n-input v-model:value="redeem" placeholder="Witness Script Hex" type="textarea"/>
           <SelectableIcon @click="showModal.scriptInfo = true">
             <InfoIcon/>
           </SelectableIcon>

@@ -2,6 +2,7 @@
 
 use crate::errors::{AnyhowExt, ResultExt};
 use crate::hashes::{hash160, ripemd160, sha1, sha256, sha256d, DigestType};
+use bitcoin::address::script_pubkey;
 use bitcoin::address::script_pubkey::{BuilderExt, ScriptExt as ScriptExt2};
 use bitcoin::hashes::Hash;
 use bitcoin::key::Secp256k1;
@@ -10,8 +11,8 @@ use bitcoin::secp256k1::{Message, SecretKey};
 use bitcoin::sighash::SighashCache;
 use bitcoin::transaction::Version;
 use bitcoin::{
-    absolute, consensus, Address, Amount, Network, OutPoint, PrivateKey, PublicKey, Script,
-    ScriptBuf, Sequence, Transaction, TxIn, TxOut, Witness,
+    absolute, consensus, Address, Amount, KnownHrp, Network, OutPoint, PrivateKey, PublicKey,
+    Script, ScriptBuf, Sequence, Transaction, TxIn, TxOut, Witness,
 };
 use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
@@ -178,7 +179,6 @@ impl TryFrom<Transaction> for JsTx {
     }
 }
 
-
 impl FromStr for JsTx {
     type Err = anyhow::Error;
 
@@ -309,10 +309,37 @@ impl TxBuilder {
 
     pub fn tx_hex_to_json(hex: &str) -> crate::Result<String> {
         let r: anyhow::Result<_> = try {
-            let result: Result<Transaction, ConsensusErrorDesc> = consensus::deserialize(&hex::decode(hex)?).map_err(Into::into);
+            let result: Result<Transaction, ConsensusErrorDesc> =
+                consensus::deserialize(&hex::decode(hex)?).map_err(Into::into);
             let tx = result?;
             let tx = JsTx::try_from(tx)?;
             serde_json::to_string(&tx)?
+        };
+        r.map_err_string()
+    }
+
+    fn parse_script_hex(hex: &str) -> anyhow::Result<ScriptBuf> {
+        Ok(Script::from_bytes(&hex::decode(hex)?).into())
+    }
+
+    pub fn create_p2wsh_address(witness_script: &str, network: &str) -> crate::Result<String> {
+        let r: anyhow::Result<_> = try {
+            let network: Network = network.parse()?;
+            let address = Address::p2wsh(
+                Script::from_bytes(&hex::decode(witness_script)?),
+                KnownHrp::from(network),
+            )?;
+            address.to_string()
+        };
+        r.map_err_string()
+    }
+
+    pub fn create_p2wsh_script_pubkey(witness_script: &str) -> crate::Result<String> {
+        let r: anyhow::Result<_> = try {
+            let script = <ScriptBuf as script_pubkey::ScriptBufExt>::new_p2wsh(
+                Self::parse_script_hex(witness_script)?.wscript_hash()?,
+            );
+            script.hex()
         };
         r.map_err_string()
     }
@@ -362,5 +389,4 @@ impl From<consensus::encode::Error> for ConsensusErrorDesc {
 }
 
 #[cfg(test)]
-mod test {
-}
+mod test {}
