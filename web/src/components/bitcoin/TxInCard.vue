@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import Frame from "./Frame.vue";
 import {Transaction, TxIn} from "../../bitcoin.ts";
-import {safeParseInt} from "../../lib.ts";
+import {safeParseInt, useWasm} from "../../lib.ts";
 import SelectableIcon from "./SelectableIcon.vue";
-import {Add as AddIcon, CreateOutline as CreateIcon, InformationOutline as InfoIcon} from '@vicons/ionicons5';
+import {
+  Add as AddIcon,
+  CreateOutline as CreateIcon,
+  EllipsisHorizontal as EllipsisIcon,
+  InformationOutline as InfoIcon
+} from '@vicons/ionicons5';
 import {ref} from "vue";
 import ScriptInfoModal from "./ScriptInfoModal.vue";
 import TxiScriptSigInputModal from "./TxiScriptSigInputModal.vue";
 import WitnessItem from "./WitnessItem.vue";
+import PromptModal from "./PromptModal.vue";
+
+const wasm = useWasm();
 
 let valueModel = defineModel<TxIn>('value');
 let emit = defineEmits(['close']);
@@ -20,11 +28,35 @@ let showModal = ref({
   scriptSigInfo: false,
   sequence: false,
   inputScriptSig: false,
+  importWitness: false,
 });
 
 function enterSequence(value: number) {
   showModal.value.sequence = false;
   valueModel.value.sequence = value;
+}
+
+let witnessImportInput = ref('');
+type WitnessDropdownKey = 'import' | 'clear';
+let witnessDropdown: { key: WitnessDropdownKey, label: string }[] = [
+  {key: 'import', label: 'Import'},
+  {key: 'clear', label: 'Clear'},
+];
+
+function witnessDropdownSelected(key: WitnessDropdownKey) {
+  switch (key) {
+    case "import":
+      showModal.value.importWitness = true;
+      break;
+    case 'clear':
+      valueModel.value.witness = [];
+      break;
+  }
+}
+
+function witnessImportDone() {
+  valueModel.value.witness = wasm.TxBuilder.split_comma_hex(witnessImportInput.value);
+  showModal.value.importWitness = false;
 }
 </script>
 
@@ -33,6 +65,12 @@ function enterSequence(value: number) {
       :tx="props.tx" :index="props.index"
       v-model:show="showModal.inputScriptSig"
       @result="x => valueModel.scriptSig = x"
+  />
+  <PromptModal title="Import" placeholder="Comma-separated hex"
+               v-model:show="showModal.importWitness"
+               v-model:input="witnessImportInput"
+               @done="witnessImportDone"
+               :check="input => {wasm.TxBuilder.split_comma_hex(input)}"
   />
 
   <n-modal v-model:show="showModal.sequence"
@@ -102,6 +140,9 @@ function enterSequence(value: number) {
       <span class="label">
         Witness
         <SelectableIcon @click="valueModel.witness.push('')"><AddIcon/></SelectableIcon>
+        <n-dropdown :options="witnessDropdown" @select="witnessDropdownSelected">
+          <SelectableIcon><EllipsisIcon/></SelectableIcon>
+        </n-dropdown>
       </span>
       <div id="witness-flex">
         <WitnessItem v-for="(_, index) in valueModel.witness"

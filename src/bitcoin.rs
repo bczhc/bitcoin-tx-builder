@@ -16,6 +16,7 @@ use bitcoin::{
     absolute, consensus, Address, Amount, EcdsaSighashType, KnownHrp, Network, OutPoint,
     PrivateKey, PublicKey, Script, ScriptBuf, Sequence, Transaction, TxIn, TxOut, Witness,
 };
+use hex::FromHexError;
 use serde::{Deserialize, Serialize};
 use std::convert::{TryFrom, TryInto};
 use std::fmt;
@@ -31,7 +32,7 @@ pub struct Bitcoin;
 impl Bitcoin {
     pub fn parse_script_hex(hex_string: &str) -> crate::Result<String> {
         let result: anyhow::Result<_> = try {
-            let vec = hex::decode(hex_string)?;
+            let vec = parse_hex_lossy(hex_string)?;
             let script_buf = ScriptBuf::from(vec);
             script_buf.to_asm_string()
         };
@@ -39,12 +40,13 @@ impl Bitcoin {
     }
 
     pub fn base58_check(hex: &str) -> crate::Result<String> {
-        let result: anyhow::Result<_> = try { bitcoin::base58::encode_check(&hex::decode(hex)?) };
+        let result: anyhow::Result<_> =
+            try { bitcoin::base58::encode_check(&parse_hex_lossy(hex)?) };
         result.map_err_string()
     }
 
     pub fn parse_hex_str(hex: &str) -> crate::Result<Vec<u8>> {
-        let result = hex::decode(hex);
+        let result = parse_hex_lossy(hex);
         result.map_err_string()
     }
 
@@ -113,7 +115,7 @@ impl TryFrom<JsTx> for Transaction {
                         witness: {
                             let mut w = Witness::new();
                             for x in &x.witness {
-                                w.push(hex::decode(x)?);
+                                w.push(parse_hex_lossy(x)?);
                             }
                             w
                         },
@@ -219,6 +221,16 @@ pub fn sign_sighash(
     signature
 }
 
+/// Parses hex string ignoring all whitespaces.
+fn parse_hex_lossy(hex: impl AsRef<str>) -> Result<Vec<u8>, FromHexError> {
+    let filtered = hex
+        .as_ref()
+        .chars()
+        .filter(|x| !x.is_whitespace())
+        .collect::<String>();
+    hex::decode(&filtered)
+}
+
 #[wasm_bindgen]
 impl TxBuilder {
     pub fn json_to_tx_hex(json: &str) -> crate::Result<String> {
@@ -243,7 +255,8 @@ impl TxBuilder {
     }
 
     pub fn script_to_asm(hex: &str) -> crate::Result<String> {
-        let r: anyhow::Result<_> = try { Script::from_bytes(&hex::decode(hex)?).to_asm_string() };
+        let r: anyhow::Result<_> =
+            try { Script::from_bytes(&parse_hex_lossy(hex)?).to_asm_string() };
         r.map_err_string()
     }
 
@@ -262,8 +275,8 @@ impl TxBuilder {
         let r: anyhow::Result<_> = try {
             let tx: JsTx = tx_json.parse()?;
             let tx: Transaction = tx.try_into()?;
-            let txo_script_pubkey = ScriptBuf::from_bytes(hex::decode(txo_script_pubkey)?);
-            let secret = SecretKey::from_slice(&hex::decode(secret_key)?)?;
+            let txo_script_pubkey = ScriptBuf::from_bytes(parse_hex_lossy(txo_script_pubkey)?);
+            let secret = SecretKey::from_slice(&parse_hex_lossy(secret_key)?)?;
             let sighash_type = EcdsaSighashType::from_consensus(sighash_type);
 
             let signing_type = SigningType::from_str(signing_type)?;
@@ -308,7 +321,7 @@ impl TxBuilder {
 
     pub fn secret_to_public_key_compressed(secret: &str) -> crate::Result<String> {
         let r: anyhow::Result<_> = try {
-            let ec = SecretKey::from_slice(&hex::decode(secret)?)?;
+            let ec = SecretKey::from_slice(&parse_hex_lossy(secret)?)?;
             let public = ec.public_key(&Default::default());
             public.serialize().hex()
         };
@@ -338,7 +351,7 @@ impl TxBuilder {
 
     pub fn generate_p2sh_pub_key(redeem_hex: &str) -> crate::Result<String> {
         let r: anyhow::Result<_> = try {
-            let bytes = hex::decode(redeem_hex)?;
+            let bytes = parse_hex_lossy(redeem_hex)?;
             let script = Script::from_bytes(&bytes);
             let p2sh = ScriptExt2::to_p2sh(script)?;
             p2sh.hex()
@@ -348,8 +361,10 @@ impl TxBuilder {
 
     pub fn script_sig_for_p2sh(script_sig_hex: &str, redeem_hex: &str) -> crate::Result<String> {
         let r: anyhow::Result<_> = try {
-            let mut buf = ScriptBuf::from_bytes(hex::decode(script_sig_hex)?);
-            buf.push_slice(<&PushBytes>::try_from(hex::decode(redeem_hex)?.as_slice())?);
+            let mut buf = ScriptBuf::from_bytes(parse_hex_lossy(script_sig_hex)?);
+            buf.push_slice(<&PushBytes>::try_from(
+                parse_hex_lossy(redeem_hex)?.as_slice(),
+            )?);
             buf.hex()
         };
         r.map_err_string()
@@ -358,7 +373,7 @@ impl TxBuilder {
     pub fn tx_hex_to_json(hex: &str) -> crate::Result<String> {
         let r: anyhow::Result<_> = try {
             let result: Result<Transaction, ConsensusErrorDesc> =
-                consensus::deserialize(&hex::decode(hex)?).map_err(Into::into);
+                consensus::deserialize(&parse_hex_lossy(hex)?).map_err(Into::into);
             let tx = result?;
             let tx = JsTx::try_from(tx)?;
             serde_json::to_string(&tx)?
@@ -367,14 +382,14 @@ impl TxBuilder {
     }
 
     fn parse_script_hex(hex: &str) -> anyhow::Result<ScriptBuf> {
-        Ok(Script::from_bytes(&hex::decode(hex)?).into())
+        Ok(Script::from_bytes(&parse_hex_lossy(hex)?).into())
     }
 
     pub fn create_p2wsh_address(witness_script: &str, network: &str) -> crate::Result<String> {
         let r: anyhow::Result<_> = try {
             let network: Network = network.parse()?;
             let address = Address::p2wsh(
-                Script::from_bytes(&hex::decode(witness_script)?),
+                Script::from_bytes(&parse_hex_lossy(witness_script)?),
                 KnownHrp::from(network),
             )?;
             address.to_string()
@@ -396,8 +411,8 @@ impl TxBuilder {
         let r: anyhow::Result<_> = try {
             // <signature> <public-key>
             let script = ScriptBuf::builder()
-                .push_slice_try_from(&hex::decode(signature)?)?
-                .push_key(PublicKey::from_slice(&hex::decode(pubkey)?)?)
+                .push_slice_try_from(&parse_hex_lossy(signature)?)?
+                .push_key(PublicKey::from_slice(&parse_hex_lossy(pubkey)?)?)
                 .into_script();
             script.hex()
         };
@@ -431,9 +446,17 @@ impl TxBuilder {
         r.map_err_string()
     }
 
-    pub fn op_return_script_pubkey(text: &str) -> crate::Result<String>{
+    pub fn op_return_script_pubkey(text: &str) -> crate::Result<String> {
+        let r: anyhow::Result<_> =
+            try { ScriptBuf::new_op_return(<&PushBytes>::try_from(text.as_bytes())?).hex() };
+        r.map_err_string()
+    }
+
+    pub fn split_comma_hex(text: &str) -> crate::Result<Vec<String>> {
         let r: anyhow::Result<_> = try {
-            ScriptBuf::new_op_return(<&PushBytes>::try_from(text.as_bytes())?).hex()
+            text.split(',').map(|x| {
+                parse_hex_lossy(x).map(|x| x.hex())
+            }).collect::<Result<Vec<_>, _>>()?
         };
         r.map_err_string()
     }
