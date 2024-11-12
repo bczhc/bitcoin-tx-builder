@@ -70,7 +70,7 @@ function witnessImportDone() {
                v-model:show="showModal.importWitness"
                v-model:input="witnessImportInput"
                @done="witnessImportDone"
-               :check="input => {wasm.TxBuilder.split_comma_hex(input)}"
+               :check="(input: string) => {wasm.TxBuilder.split_comma_hex(input)}"
   />
 
   <n-modal v-model:show="showModal.sequence"

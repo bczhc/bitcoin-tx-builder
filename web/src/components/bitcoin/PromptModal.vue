@@ -5,14 +5,14 @@ import {useMessage} from 'naive-ui';
 
 const message = useMessage();
 
-let showModel = defineModel('show');
-let inputModel = defineModel('input');
+let showModel = defineModel<boolean>('show');
+let inputModel = defineModel<string>('input');
 
 let props = defineProps<{
   title: string,
   placeholder?: string,
   inputSize?: string,
-  check?: (input: string) => string,
+  check?: (input: string) => void,
 }>();
 
 let emit = defineEmits(['done']);
