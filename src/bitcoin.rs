@@ -24,6 +24,7 @@ use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use strum::{EnumString, IntoStaticStr};
 use wasm_bindgen::prelude::wasm_bindgen;
+use crate::{console, console_log};
 
 #[wasm_bindgen]
 pub struct Bitcoin;
@@ -291,6 +292,10 @@ impl TxBuilder {
                     sighash.to_byte_array()
                 }
                 SigningType::P2wpkh => {
+                    console_log(&format!("index: {}", index));
+                    console_log(&format!("index: {:?}", amount));
+                    console_log(&format!("index: {:?}", txo_script_pubkey));
+                    console_log(&format!("index: {:?}", sighash_type));
                     let mut cache = SighashCache::new(tx);
                     let sighash = cache.p2wpkh_signature_hash(
                         index as usize,

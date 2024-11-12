@@ -8,7 +8,8 @@ import WitnessItemInsertModal from "./WitnessItemInsertModal.vue";
 import {Transaction} from "../../bitcoin.ts";
 
 let props = defineProps<{
-  index: number,
+  txIndex: number,
+  itemIndex: number,
   tx: Transaction,
 }>();
 
@@ -48,7 +49,7 @@ function onDropdownSelected(key: DropdownKey) {
   <ScriptInfoModal :script-hex="model" v-model:show="showModal.scriptInfo"/>
   <WitnessItemInsertModal
       v-model:show="showModal.insert"
-      :index="props.index"
+      :tx-index="props.txIndex"
       :tx="props.tx"
       @result="r => model = r"
   />
@@ -57,7 +58,7 @@ function onDropdownSelected(key: DropdownKey) {
     <div id="line">
       <n-input placeholder="Item hex" type="textarea" v-model:value="model"/>
       <div style="display: inline-flex; flex-direction: column">
-        <span class="label">[{{ index }}]</span>
+        <span class="label">[{{ props.itemIndex }}]</span>
         <n-dropdown :options="dropdownOptions"
                     @select="onDropdownSelected"
                     trigger="hover"

@@ -14,7 +14,7 @@ let tabValue = ref<TabValue>('Signature');
 
 let props = defineProps<{
   tx: Transaction,
-  index: number,
+  txIndex: number,
 }>();
 
 let signingParams: Ref<SignatureParams> = ref({
@@ -35,7 +35,7 @@ function doneClicked() {
     validateTxSerialization(props.tx);
     switch (tabValue.value) {
       case 'Signature':
-        let result = signForSignature(signingParams.value, props.tx, props.index);
+        let result = signForSignature(signingParams.value, props.tx, props.txIndex);
         emit('result', result.signature);
         break;
       case 'Public Key':
@@ -64,7 +64,7 @@ function doneClicked() {
     >
       <n-tabs type="line" animated v-model:value="tabValue">
         <n-tab-pane name="Signature">
-          <SigningView :tx="props.tx" :index="props.index"
+          <SigningView :tx="props.tx" :index="props.txIndex"
                        v-model:value="signingParams"
           />
         </n-tab-pane>
