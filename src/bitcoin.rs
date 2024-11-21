@@ -465,6 +465,27 @@ impl TxBuilder {
         };
         r.map_err_string()
     }
+
+    pub fn tx_info(hex: &str) -> crate::Result<String> {
+        let r: anyhow::Result<_> = try {
+            let tx: Transaction = consensus::deserialize(&hex::decode(hex)?).map_err(|e| anyhow!("Deserialization error"))?;
+            let serialized = consensus::serialize(&tx);
+            // the witness marker is zero
+            let is_witness = serialized.get(4).map(|&x| x == 0).ok_or(anyhow!("Invalid transaction"))?;
+
+            let weight = tx.weight();
+            let info = TransactionInfo {
+                is_witness,
+                total_size: tx.total_size(),
+                base_size: tx.base_size(),
+                witness_size: tx.total_size() - tx.base_size(),
+                weight_units: weight.to_wu(),
+                vbytes: weight.to_vbytes_ceil(),
+            };
+            serde_json::to_string(&info).unwrap()
+        };
+        r.map_err_string()
+    }
 }
 
 #[derive(Serialize)]
@@ -473,6 +494,17 @@ struct ScriptInfo<'a> {
     r#type: Option<String>,
     asm: &'a str,
     op_return_data: Option<String>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TransactionInfo {
+    is_witness: bool,
+    total_size: usize,
+    base_size: usize,
+    witness_size: usize,
+    weight_units: u64,
+    vbytes: u64,
 }
 
 #[derive(EnumString, IntoStaticStr, Debug)]

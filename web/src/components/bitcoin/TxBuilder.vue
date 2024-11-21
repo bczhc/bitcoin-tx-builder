@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Frame from "./Frame.vue";
 import TxInCard from "./TxInCard.vue";
-import {computed, ComputedRef, Ref, ref, watch} from "vue";
+import {computed, Ref, ref, watch} from "vue";
 import {
   CHECK_DIGITS,
   defaultTx,
@@ -10,13 +10,14 @@ import {
   GLOBAL_NETWORK,
   NetworkType,
   Transaction,
+  TransactionInfo,
   TxIn,
   TxOut,
   updateNetwork
 } from "../../bitcoin.ts";
 import {ArrowForward as Arrow} from '@vicons/ionicons5';
 import TxOutCard from "./TxOutCard.vue";
-import {useWasm, safeParseInt} from "../../lib.ts";
+import {safeParseInt, useWasm} from "../../lib.ts";
 import {useRoute, useRouter} from "vue-router";
 import ImportTxModal from "./ImportTxModal.vue";
 
@@ -56,13 +57,14 @@ let transactionHex = computed(() => {
   }
 });
 
-let transactionSize: ComputedRef<number | string> = computed(() => {
+let transactionInfo = computed<TransactionInfo | null>(() => {
   try {
-    return wasm.TxBuilder.json_to_tx_hex(JSON.stringify(transaction.value)).length / 2;
-  } catch (e: any) {
-    return '??';
+    let json = JSON.parse(wasm.TxBuilder.tx_info(transactionHex.value));
+    return json as TransactionInfo;
+  } catch (_: any) {
+    return null;
   }
-})
+});
 
 watch([transaction], () => {
   console.log(transaction.value);
@@ -172,10 +174,19 @@ function optionsButtonOnSelect(key: OptionsButtonKey) {
       </div>
     </Frame>
     <div style="margin-top: 1em" class="bold-text">Transaction Info:</div>
-    Input number: {{ txIns.length }}<br>
-    Output number: {{ txOuts.length }}<br>
-    Output total value: {{ txOuts.map(x => x.amount).reduce((partialSum, a) => partialSum + a, 0) }} sats<br>
-    Transaction size: {{ transactionSize }} bytes<br>
+    <div class="tx-info-list">
+      <span>Input number: {{ txIns.length }}</span>
+      <span>Output number: {{ txOuts.length }}</span>
+      <span>Output total value: {{ txOuts.map(x => x.amount).reduce((partialSum, a) => partialSum + a, 0) }} sats</span>
+      <div v-if="transactionInfo" class="tx-info-list">
+        <span>Is witness: {{ transactionInfo!!.isWitness }}</span>
+        <span>Transaction size: {{ transactionInfo!!.totalSize }} bytes,
+          {{ transactionInfo!!.vbytes }} vbytes,
+          {{ transactionInfo!!.weightUnits }} wu</span>
+        <span>Base size: {{ transactionInfo!!.baseSize }} bytes</span>
+        <span>Witness size: {{ transactionInfo!!.witnessSize }} bytes</span>
+      </div>
+    </div>
     <n-divider/>
     <div class="bold-text">JSON:</div>
     <pre id="tx-output">{{ JSON.stringify(transaction, null, 2) }}</pre>
@@ -228,5 +239,10 @@ function optionsButtonOnSelect(key: OptionsButtonKey) {
 
 .bold-text {
   font-weight: bold;
+}
+
+.tx-info-list {
+  display: flex;
+  flex-direction: column;
 }
 </style>

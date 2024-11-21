@@ -121,6 +121,15 @@ export interface ScriptInfo {
     opReturnData?: string,
 }
 
+export interface TransactionInfo {
+    isWitness: boolean,
+    totalSize: bigint,
+    baseSize: bigint,
+    witnessSize: bigint,
+    weightUnits: bigint,
+    vbytes: bigint,
+}
+
 export type NetworkType = 'bitcoin' | 'testnet' | 'testnet4' | 'sigtest' | 'regtest';
 export let GLOBAL_NETWORK: NetworkType = 'bitcoin';
 
